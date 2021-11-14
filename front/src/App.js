@@ -56,11 +56,10 @@ class App extends Component{
     this.setState({input:event.target.value})
   }
   onButtonSubmit = () => {
-    console.log(this.state.input)
     this.setState({imageUrl: this.state.input});
       app.models.predict(Clarifai.FACE_DETECT_MODEL,this.state.input)
       .then((response) =>{ 
-        if(response){
+        if(response.outputs[0].data.regions){
           fetch('http://localhost:3000/image', {
               method: 'put',
               headers: {'Content-Type': 'application/json'},
@@ -70,22 +69,28 @@ class App extends Component{
           })
           .then(response => response.json())
           .then(count => this.setState(Object.assign(this.state.user, {entries : count}))
-          )}
-        this.displayFaceBox(this.calculateFaceLocation(response));
+        )}
+        if(response.outputs[0].data.regions){
+          this.displayFaceBox(this.calculateFaceLocation(response));
+        }else{
+          this.displayFaceBox(0);
+          alert("There is no facial recognition in the image you uploaded")
+        }
+        
       })
       .catch(err => console.log(err))
   }
   calculateFaceLocation =(data) => {
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-    const image = document.getElementById('inputimage');
-    const width = Number(image.width);
-    const height = Number(image.height);
-    return {
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
-    }
+      const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
+      const image = document.getElementById('inputimage');
+      const width = Number(image.width);
+      const height = Number(image.height);
+      return {
+        leftCol: clarifaiFace.left_col * width,
+        topRow: clarifaiFace.top_row * height,
+        rightCol: width - (clarifaiFace.right_col * width),
+        bottomRow: height - (clarifaiFace.bottom_row * height)
+      }
   }
   displayFaceBox = (box)=>{
     console.log(box)
